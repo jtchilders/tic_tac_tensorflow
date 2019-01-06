@@ -1,4 +1,5 @@
 import tensorflow as tf
+
 from agents.simple_agent import SimpleAgent
 from agents.td_agent import TDAgent
 from agents.forward_agent import ForwardAgent
@@ -7,22 +8,28 @@ from agents.leaf_agent import LeafAgent
 from agents.random_agent import RandomAgent
 from env import TicTacToeEnv
 from model import ValueModel
+import logging
+logger = logging.getLogger(__name__)
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
+    tf.logging.set_verbosity(logging.ERROR)
     env = TicTacToeEnv()
     model = ValueModel(env.feature_vector_size, 100)
 
-    # agent = SimpleAgent('agent_0', model, env)
+    agent = SimpleAgent('agent_0', model, env)
     # agent = TDAgent('agent_0', model, env)
     # agent = ForwardAgent('agent_0', model, env)
     # agent = BackwardAgent('agent_0', model, env)
-    agent = LeafAgent('agent_0', model, env)
+    # agent = LeafAgent('agent_0', model, env)
 
     random_agent = RandomAgent(env)
 
-    log_dir = "./log/leaf"
+    logger.info('using agent: %s',agent.__class__)
 
+    log_dir = "./log/leaf"
+    
     summary_op = tf.summary.merge_all()
     summary_writer = tf.summary.FileWriter(log_dir)
 
@@ -40,14 +47,15 @@ def main():
                 sess.run(agent.update_random_agent_test_results,
                          feed_dict={random_agent_test_: result
                                     for random_agent_test_, result in zip(agent.random_agent_test_s, results)})
-                print(episode_count, ':', results)
+                logger.info('%s: results = %s',episode_count,results)
 
                 if results[2] + results[5] == 0:
                     final_summary = sess.run(summary_op)
                     summary_writer.add_summary(final_summary, global_step=episode_count)
                     break
             else:
-                agent.train(.2)
+                reward = agent.train(.2)
+                logger.info('%s: reward = %s',episode_count,reward)
             sess.run(agent.increment_episode_count)
 
 
